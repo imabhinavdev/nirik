@@ -247,6 +247,8 @@ The app can verify that webhook requests really come from GitHub or GitLab.
 3. **Accept** – The app validates the payload, enqueues a job in Redis, and responds **202 Accepted**.
 4. **Background job** – A worker picks the job up, detects GitHub vs GitLab, fetches the diff via the provider’s API, filters and chunks the added lines, calls the AI (Gemini or OpenAI) for each chunk, merges the results, and posts the review (GitHub PR review or GitLab MR discussions).
 
+**Project-specific rules:** You can add a `.nirik/rules.md` file in your repo (on the branch being reviewed) with project-specific review rules; the AI will apply them when reviewing. If the file is missing, the review uses the default prompt only.
+
 ---
 
 ## Development

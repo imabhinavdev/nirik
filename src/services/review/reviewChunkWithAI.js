@@ -49,13 +49,21 @@ const parsedChunkSchema = z.object({
 
 /**
  * Build the prompt text for one chunk of added lines.
+ * When customRules is non-empty, prepends a project rules section.
  * @param {Array<{ file: string, line: number, content: string }>} lines
  * @param {number} chunkIndex
+ * @param {string} [customRules] - Optional project rules from .nirik/rules.md
  * @returns {string}
  */
-function buildChunkPrompt(lines, chunkIndex) {
-  const header =
+function buildChunkPrompt(lines, chunkIndex, customRules = '') {
+  const baseHeader =
     'You are a code reviewer. Review only the following ADDED lines. For each finding, report: file path, line number (new side), severity (info | suggestion | warning | error), and a concise comment. Prefer actionable comments.\n\n'
+  const rulesBlock =
+    customRules && customRules.trim()
+      ? `Apply these project-specific review rules when reviewing:\n\n${customRules.trim()}\n\n---\n\n`
+      : ''
+  const header = rulesBlock + baseHeader
+
   const blocks = []
   let currentFile = null
   for (const { file, line, content } of lines) {
@@ -76,10 +84,12 @@ function buildChunkPrompt(lines, chunkIndex) {
  * Review one chunk with the configured AI provider (Gemini or OpenAI) and return parsed result.
  * @param {Array<{ file: string, line: number, content: string }>} chunkLines
  * @param {number} chunkIndex
+ * @param {{ customRules?: string }} [options] - Optional project rules from .nirik/rules.md
  * @returns {Promise<{ summary: string, reviewComments: Array<{ file: string, line: number, severity: string, body: string }> }>}
  */
-export async function reviewChunkWithAI(chunkLines, chunkIndex = 0) {
-  const prompt = buildChunkPrompt(chunkLines, chunkIndex)
+export async function reviewChunkWithAI(chunkLines, chunkIndex = 0, options = {}) {
+  const customRules = options?.customRules ?? ''
+  const prompt = buildChunkPrompt(chunkLines, chunkIndex, customRules)
   const raw = await generateStructuredReview(prompt, reviewChunkResponseSchema)
   let parsed
   try {

@@ -77,6 +77,27 @@ export async function listMergeRequestDiscussions(projectId, iid) {
 }
 
 /**
+ * Get raw file contents from the repository at a given ref.
+ * Returns null if the file is not found (404).
+ * @param {string|number} projectId
+ * @param {string} filePath - path to file, e.g. ".nirik/rules.md"
+ * @param {string} ref - branch name, tag, or commit SHA
+ * @returns {Promise<string|null>} File content as string, or null if not found
+ */
+export async function getRepositoryFileRaw(projectId, filePath, ref) {
+  const encodedId = encodeURIComponent(projectId)
+  const encodedPath = encodeURIComponent(filePath.replace(/^\//, ''))
+  const url = `/api/v4/projects/${encodedId}/repository/files/${encodedPath}/raw?ref=${encodeURIComponent(ref)}`
+  const res = await glFetch(url)
+  if (res.status === 404) return null
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`GitLab get file failed: ${res.status} ${text}`)
+  }
+  return res.text()
+}
+
+/**
  * Fetch merge request to get diff_refs for positioning comments.
  * @param {string|number} projectId
  * @param {number} iid

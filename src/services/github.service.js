@@ -70,6 +70,30 @@ export async function listPullRequestReviewComments(repoFullName, pullNumber) {
 }
 
 /**
+ * Get file contents from the repository at a given ref (branch, tag, or commit SHA).
+ * Returns null if the file is not found (404).
+ * @param {string} repoFullName - e.g. "owner/repo"
+ * @param {string} filePath - path to file, e.g. ".nirik/rules.md"
+ * @param {string} ref - branch name, tag, or commit SHA
+ * @returns {Promise<string|null>} File content as UTF-8 string, or null if not found
+ */
+export async function getRepositoryFileContents(repoFullName, filePath, ref) {
+  const [owner, repo] = repoFullName.split('/')
+  if (!owner || !repo) throw new Error('Invalid repo full name: ' + repoFullName)
+  const encodedPath = encodeURIComponent(filePath.replace(/^\//, ''))
+  const url = `${GITHUB_API}/repos/${owner}/${repo}/contents/${encodedPath}?ref=${encodeURIComponent(ref)}`
+  const res = await fetch(url, { headers: getAuthHeaders() })
+  if (res.status === 404) return null
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`GitHub get file failed: ${res.status} ${text}`)
+  }
+  const data = await res.json()
+  if (!data.content) return null
+  return Buffer.from(data.content, 'base64').toString('utf-8')
+}
+
+/**
  * Create a pull request review with body and line-level comments.
  * Uses line + side (RIGHT = new file) for comment placement.
  * @param {object} params

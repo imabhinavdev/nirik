@@ -2,6 +2,7 @@ import { getDiffFromEvent } from '../services/review/getDiffFromEvent.js'
 import { filterReviewableDiff } from '../services/review/filterReviewableDiff.js'
 import { extractReviewableLines } from '../services/review/extractReviewableLines.js'
 import { chunkReviewableLines } from '../services/review/chunkReviewableLines.js'
+import { getReviewRules } from '../services/review/getReviewRules.js'
 import { reviewChunkWithAI } from '../services/review/reviewChunkWithAI.js'
 import { mergeReviewChunks } from '../services/review/mergeReviewChunks.js'
 import { getExistingReviewComments } from '../services/review/getExistingReviewComments.js'
@@ -41,7 +42,10 @@ export async function runReviewPRJob(event) {
   }
 
   try {
-    const diffFiles = await getDiffFromEvent(event)
+    const [diffFiles, customRules] = await Promise.all([
+      getDiffFromEvent(event),
+      getReviewRules(event),
+    ])
     const filtered = filterReviewableDiff(diffFiles)
     const lines = extractReviewableLines(filtered)
 
@@ -57,7 +61,7 @@ export async function runReviewPRJob(event) {
     const chunkResults = []
 
     for (let i = 0; i < chunks.length; i++) {
-      const result = await reviewChunkWithAI(chunks[i], i)
+      const result = await reviewChunkWithAI(chunks[i], i, { customRules })
       chunkResults.push(result)
     }
 
