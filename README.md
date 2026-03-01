@@ -172,6 +172,7 @@ This repo includes a one-page landing site in `docs/` and a Pages workflow at `.
 3. GitHub Actions will deploy the content from `docs/`.
 4. Your site will be available at:
    - `https://<your-username>.github.io/<your-repo>/`
+5. If your domain is showing `README.md` instead of the landing page, your Pages source is likely set to a branch/folder. Switch it back to **GitHub Actions**.
 
 ---
 

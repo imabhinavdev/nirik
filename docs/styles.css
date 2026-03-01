@@ -31,18 +31,18 @@ body {
   );
   min-height: 100vh;
   line-height: 1.5;
-  padding: 24px;
+  padding: 26px;
 }
 
 main {
-  max-width: 980px;
+  max-width: 1160px;
   margin: 0 auto;
   position: relative;
   z-index: 2;
 }
 
 .topbar {
-  max-width: 980px;
+  max-width: 1160px;
   margin: 0 auto 20px;
   display: flex;
   justify-content: space-between;
@@ -56,20 +56,30 @@ main {
   color: var(--text);
   font-weight: 800;
   letter-spacing: 0.02em;
-  font-size: 1.15rem;
+  font-size: 1.3rem;
+}
+
+.nav-actions {
+  display: flex;
+  gap: 10px;
 }
 
 .hero,
 .strip,
-.card {
+.card,
+.cta {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 20px;
+  border-radius: 22px;
   box-shadow: var(--shadow);
 }
 
 .hero {
-  padding: 54px 42px;
+  padding: 78px 64px;
+  min-height: 64vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .eyebrow {
@@ -83,23 +93,24 @@ main {
 
 h1 {
   margin: 0;
-  font-size: clamp(2rem, 4vw, 3.5rem);
-  line-height: 1.08;
+  font-size: clamp(2.5rem, 5vw, 4.9rem);
+  line-height: 1.03;
 }
 
 h2 {
   margin-top: 0;
-  font-size: 1.15rem;
+  font-size: 1.2rem;
 }
 
 .lead {
   margin: 18px 0 0;
-  max-width: 700px;
+  max-width: 780px;
   color: var(--muted);
+  font-size: 1.12rem;
 }
 
 .actions {
-  margin-top: 28px;
+  margin-top: 34px;
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
@@ -107,7 +118,7 @@ h2 {
 
 .button {
   display: inline-block;
-  padding: 11px 18px;
+  padding: 12px 20px;
   border-radius: 11px;
   text-decoration: none;
   color: #ffffff;
@@ -135,14 +146,14 @@ h2 {
 }
 
 .grid {
-  margin-top: 18px;
+  margin-top: 24px;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  gap: 16px;
 }
 
 .card {
-  padding: 24px;
+  padding: 28px;
 }
 
 .card p {
@@ -151,24 +162,65 @@ h2 {
 }
 
 .strip {
-  margin-top: 18px;
-  padding: 28px;
+  margin-top: 24px;
+  padding: 34px;
 }
 
 ol {
-  margin: 12px 0 0;
+  margin: 14px 0 0;
   padding-left: 18px;
   color: var(--muted);
 }
 
+.cta {
+  margin-top: 24px;
+  padding: 34px;
+}
+
+.cta p {
+  color: var(--muted);
+  margin-top: 8px;
+  margin-bottom: 18px;
+}
+
 .footer {
-  max-width: 980px;
-  margin: 16px auto 0;
+  max-width: 1160px;
+  margin: 20px auto 0;
   color: var(--muted);
   text-align: center;
   position: relative;
   z-index: 2;
   font-size: 0.95rem;
+}
+
+.doc {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  padding: 34px;
+}
+
+.doc + .doc {
+  margin-top: 16px;
+}
+
+.doc p,
+.doc li {
+  color: var(--muted);
+}
+
+.doc code {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.9em;
+}
+
+.doc pre {
+  background: #f3f7f5;
+  border: 1px solid #d4ded9;
+  border-radius: 12px;
+  padding: 14px;
+  overflow: auto;
 }
 
 .bg-orb {
@@ -225,7 +277,8 @@ ol {
   }
 
   .hero {
-    padding: 34px 22px;
+    min-height: 0;
+    padding: 42px 24px;
   }
 
   .grid {
@@ -233,6 +286,14 @@ ol {
   }
 
   .strip {
+    padding: 22px;
+  }
+
+  .cta {
+    padding: 22px;
+  }
+
+  .doc {
     padding: 22px;
   }
 }

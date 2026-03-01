@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nirik Docs</title>
+    <meta
+      name="description"
+      content="Nirik documentation for setup, self-hosting, environment variables, and webhook configuration."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="bg-orb orb-a"></div>
+    <div class="bg-orb orb-b"></div>
+
+    <header class="topbar">
+      <a class="brand" href="./index.html">Nirik</a>
+      <div class="nav-actions">
+        <a class="button button-ghost" href="./index.html">Home</a>
+        <a
+          class="button button-ghost"
+          href="https://github.com/imabhinavdev/nirik"
+          >GitHub</a
+        >
+      </div>
+    </header>
+
+    <main>
+      <section class="hero reveal">
+        <p class="eyebrow">Documentation</p>
+        <h1>Nirik setup and self-hosting guide</h1>
+        <p class="lead">
+          Run Nirik on your own infrastructure to automate AI code reviews for
+          GitHub pull requests and GitLab merge requests.
+        </p>
+      </section>
+
+      <section class="doc reveal">
+        <h2>Quick start</h2>
+        <ol>
+          <li>
+            Clone the repository and create <code>.env</code> from
+            <code>.env.example</code>.
+          </li>
+          <li>
+            Add one AI provider key and provider tokens (GitHub and/or GitLab).
+          </li>
+          <li>
+            Set a strong <code>METRICS_TOKEN</code> for
+            <code>/metrics</code> access.
+          </li>
+          <li>
+            Run with Docker Compose (<code>docker compose up -d</code>) or Node
+            + Redis.
+          </li>
+        </ol>
+      </section>
+
+      <section class="doc reveal">
+        <h2>Required environment variables</h2>
+        <ul>
+          <li><code>GEMINI_API_KEY</code> or <code>OPENAI_API_KEY</code></li>
+          <li><code>GITHUB_TOKEN</code> for GitHub PR reviews</li>
+          <li><code>GITLAB_TOKEN</code> for GitLab MR reviews</li>
+          <li>
+            <code>METRICS_TOKEN</code> for <code>GET /metrics</code> protection
+          </li>
+          <li><code>REDIS_URL</code> for queue + worker</li>
+        </ul>
+        <p>
+          Recommended: <code>BASE_URL</code>,
+          <code>GITHUB_WEBHOOK_SECRET</code>, and
+          <code>GITLAB_WEBHOOK_TOKEN</code>.
+        </p>
+      </section>
+
+      <section class="doc reveal">
+        <h2>Webhook endpoint</h2>
+        <p>Use this endpoint in GitHub and GitLab webhook settings:</p>
+        <pre><code>POST /api/v1/webhooks/review-pr</code></pre>
+        <p>
+          Use pull/merge request events. Nirik processes open/update flows and
+          posts review comments back on the same PR/MR.
+        </p>
+      </section>
+
+      <section class="doc reveal">
+        <h2>Metrics endpoint security</h2>
+        <p><code>/metrics</code> is token-protected. Send:</p>
+        <pre><code>Authorization: Bearer &lt;METRICS_TOKEN&gt;</code></pre>
+        <p>Example:</p>
+        <pre><code>curl -H "Authorization: Bearer your_token_here" https://your-domain.com/metrics</code></pre>
+      </section>
+
+      <section class="doc reveal">
+        <h2>Production deployment notes</h2>
+        <ul>
+          <li>
+            Run behind HTTPS (Nginx, Caddy, Traefik, or Cloudflare Tunnel).
+          </li>
+          <li>
+            Use long random values for webhook secrets and
+            <code>METRICS_TOKEN</code>.
+          </li>
+          <li>Monitor logs and queue health.</li>
+          <li>Pin <code>BASE_URL</code> to your external domain.</li>
+        </ul>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>
+        Need more detail? See the repository README for full configuration and
+        API notes.
+      </p>
+    </footer>
+
+    <script>
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) entry.target.classList.add('show')
+          })
+        },
+        { threshold: 0.12 },
+      )
+      document.querySelectorAll('.reveal').forEach((el) => observer.observe(el))
+    </script>
+  </body>
+</html>

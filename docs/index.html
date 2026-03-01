@@ -22,17 +22,20 @@
 
     <header class="topbar">
       <a class="brand" href="#">Nirik</a>
-      <a
-        class="button button-ghost"
-        href="https://github.com/imabhinavdev/nirik"
-        >GitHub</a
-      >
+      <div class="nav-actions">
+        <a class="button button-ghost" href="./docs.html">Docs</a>
+        <a
+          class="button button-ghost"
+          href="https://github.com/imabhinavdev/nirik"
+          >GitHub</a
+        >
+      </div>
     </header>
 
     <main>
       <section class="hero reveal">
         <p class="eyebrow">Self-hosted AI Code Reviewer</p>
-        <h1>Ship cleaner PRs and MRs without extra meetings.</h1>
+        <h1>Ship cleaner PRs and MRs at team scale.</h1>
         <p class="lead">
           Nirik listens to GitHub and GitLab webhooks, reviews changed lines
           with Gemini or OpenAI, then posts actionable review comments right in
@@ -42,11 +45,7 @@
           <a class="button" href="https://github.com/imabhinavdev/nirik"
             >Get Started</a
           >
-          <a
-            class="button button-ghost"
-            href="https://github.com/imabhinavdev/nirik#self-hosting"
-            >Self-host Guide</a
-          >
+          <a class="button button-ghost" href="./docs.html">Read Docs</a>
         </div>
       </section>
 
@@ -72,6 +71,15 @@
           <li>Run with Docker Compose or Node + Redis.</li>
           <li>Point GitHub or GitLab webhook to /api/v1/webhooks/review-pr.</li>
         </ol>
+      </section>
+
+      <section class="cta reveal">
+        <h2>Need full setup details?</h2>
+        <p>
+          Open the docs page for full environment variables, webhook setup,
+          metrics auth, and production hosting steps.
+        </p>
+        <a class="button" href="./docs.html">Open Documentation</a>
       </section>
     </main>
 
