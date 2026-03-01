@@ -199,6 +199,7 @@ ol {
   border-radius: 20px;
   box-shadow: var(--shadow);
   padding: 34px;
+  margin-top: 16px;
 }
 
 .doc + .doc {
@@ -221,6 +222,44 @@ ol {
   border-radius: 12px;
   padding: 14px;
   overflow: auto;
+}
+
+.toc-list {
+  columns: 2;
+  column-gap: 28px;
+}
+
+.toc-list li {
+  break-inside: avoid;
+  margin-bottom: 8px;
+}
+
+.toc-list a {
+  color: var(--brand-strong);
+  text-decoration: none;
+}
+
+.toc-list a:hover {
+  text-decoration: underline;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  font-size: 0.95rem;
+}
+
+th,
+td {
+  border: 1px solid var(--line);
+  padding: 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: #f3f7f5;
 }
 
 .bg-orb {
@@ -295,5 +334,9 @@ ol {
 
   .doc {
     padding: 22px;
+  }
+
+  .toc-list {
+    columns: 1;
   }
 }

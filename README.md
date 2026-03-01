@@ -5,6 +5,8 @@
 **Automated AI-powered code reviews for Pull Requests (GitHub) and Merge Requests (GitLab).**  
 When you open or update a PR/MR, this app fetches the diff, sends the changed code to an AI (Gemini or OpenAI), and posts the review as comments on your PR/MR.
 
+Built for teams who want fewer "looks good to me" comments and fewer 2 a.m. "who approved this?" moments.
+
 ---
 
 ## Table of contents
@@ -67,6 +69,8 @@ You need to provide:
 ---
 
 ## Quick start
+
+If "quick start" takes more than 10 minutes, you are officially allowed to blame DNS.
 
 ### Option A: Docker (easiest)
 
@@ -131,6 +135,7 @@ You need to provide:
 ## Self-hosting
 
 Nirik is designed for self-hosting and works well on a small VM or container host.
+It is happiest when your server has stable internet, stable clocks, and unstable opinions about tabs vs spaces.
 
 1. **Choose runtime**
    - **Docker Compose (recommended)**: easiest to run the app + Redis together.
@@ -309,6 +314,8 @@ pnpm run lint
 pnpm run format
 ```
 
+If lint passes on the first run, buy a lottery ticket.
+
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 
 ---
@@ -332,6 +339,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 
 - **Redis connection failed**  
   Start Redis (e.g. `redis-server` or `docker compose up redis`). If needed, verify connectivity from the app container/host to your Redis service.
+
+- **Everything was working yesterday**  
+  Classic distributed systems behavior. Check token expiry, webhook delivery logs, DNS, reverse proxy config, and whether someone "just changed one tiny thing."
 
 ---
 

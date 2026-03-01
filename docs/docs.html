@@ -6,7 +6,7 @@
     <title>Nirik Docs</title>
     <meta
       name="description"
-      content="Nirik documentation for setup, self-hosting, environment variables, and webhook configuration."
+      content="Complete Nirik documentation: setup, config, webhooks, security, API reference, self-hosting, and troubleshooting."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -33,93 +33,394 @@
     </header>
 
     <main>
-      <section class="hero reveal">
-        <p class="eyebrow">Documentation</p>
-        <h1>Nirik setup and self-hosting guide</h1>
+      <section class="hero reveal" id="top">
+        <p class="eyebrow">Complete Documentation</p>
+        <h1>Nirik documentation</h1>
         <p class="lead">
-          Run Nirik on your own infrastructure to automate AI code reviews for
-          GitHub pull requests and GitLab merge requests.
+          Everything needed to run, secure, and operate Nirik in one place.
+        </p>
+        <p class="lead">
+          Written for developers, operators, and whoever got paged last.
         </p>
       </section>
 
-      <section class="doc reveal">
-        <h2>Quick start</h2>
-        <ol>
-          <li>
-            Clone the repository and create <code>.env</code> from
-            <code>.env.example</code>.
-          </li>
-          <li>
-            Add one AI provider key and provider tokens (GitHub and/or GitLab).
-          </li>
-          <li>
-            Set a strong <code>METRICS_TOKEN</code> for
-            <code>/metrics</code> access.
-          </li>
-          <li>
-            Run with Docker Compose (<code>docker compose up -d</code>) or Node
-            + Redis.
-          </li>
+      <section class="doc reveal" id="toc">
+        <h2>Table of Contents</h2>
+        <ol class="toc-list">
+          <li><a href="#overview">Overview</a></li>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#architecture">How It Works</a></li>
+          <li><a href="#prerequisites">Prerequisites</a></li>
+          <li><a href="#quickstart">Quick Start</a></li>
+          <li><a href="#self-hosting">Self-Hosting</a></li>
+          <li><a href="#configuration">Configuration</a></li>
+          <li><a href="#webhooks">Webhook Setup</a></li>
+          <li><a href="#security">Webhook Security</a></li>
+          <li><a href="#metrics">Metrics Security</a></li>
+          <li><a href="#api">API Reference</a></li>
+          <li><a href="#rules">Project-Specific Rules</a></li>
+          <li><a href="#operations">Operations</a></li>
+          <li><a href="#troubleshooting">Troubleshooting</a></li>
+          <li><a href="#faq">FAQ</a></li>
         </ol>
       </section>
 
-      <section class="doc reveal">
-        <h2>Required environment variables</h2>
+      <section class="doc reveal" id="overview">
+        <h2>Overview</h2>
+        <p>
+          Nirik is a self-hosted AI code review service for GitHub pull requests
+          and GitLab merge requests. When PR/MR events arrive by webhook, Nirik
+          fetches the diff, filters noisy files, reviews added lines with AI,
+          and posts review comments back on the PR/MR.
+        </p>
+        <p>
+          Think of it as a reviewer who never sleeps, never bikesheds variable
+          names for 40 minutes, and never says "LGTM" without context.
+        </p>
+      </section>
+
+      <section class="doc reveal" id="features">
+        <h2>Features</h2>
         <ul>
-          <li><code>GEMINI_API_KEY</code> or <code>OPENAI_API_KEY</code></li>
-          <li><code>GITHUB_TOKEN</code> for GitHub PR reviews</li>
-          <li><code>GITLAB_TOKEN</code> for GitLab MR reviews</li>
+          <li>Supports GitHub PR webhooks and GitLab MR webhooks.</li>
+          <li>Single webhook endpoint for both providers.</li>
+          <li>Uses Gemini or OpenAI for AI review generation.</li>
+          <li>Reviews only added lines to reduce token usage.</li>
           <li>
-            <code>METRICS_TOKEN</code> for <code>GET /metrics</code> protection
+            Background processing with queue workers for fast webhook responses.
           </li>
-          <li><code>REDIS_URL</code> for queue + worker</li>
+          <li>Prometheus metrics endpoint with token protection.</li>
+          <li>Works on Docker Compose or Node process deployment.</li>
         </ul>
-        <p>
-          Recommended: <code>BASE_URL</code>,
-          <code>GITHUB_WEBHOOK_SECRET</code>, and
-          <code>GITLAB_WEBHOOK_TOKEN</code>.
-        </p>
       </section>
 
-      <section class="doc reveal">
-        <h2>Webhook endpoint</h2>
-        <p>Use this endpoint in GitHub and GitLab webhook settings:</p>
-        <pre><code>POST /api/v1/webhooks/review-pr</code></pre>
-        <p>
-          Use pull/merge request events. Nirik processes open/update flows and
-          posts review comments back on the same PR/MR.
-        </p>
+      <section class="doc reveal" id="architecture">
+        <h2>How It Works</h2>
+        <ol>
+          <li>
+            GitHub/GitLab sends webhook to
+            <code>POST /api/v1/webhooks/review-pr</code>.
+          </li>
+          <li>Nirik verifies request signature/token (if configured).</li>
+          <li>Nirik validates event action and enqueues review job.</li>
+          <li>Worker fetches diff using Git provider API.</li>
+          <li>Review engine filters files and chunks added lines.</li>
+          <li>AI generates summary + line comments.</li>
+          <li>Nirik posts comments/discussions back to PR/MR.</li>
+        </ol>
       </section>
 
-      <section class="doc reveal">
-        <h2>Metrics endpoint security</h2>
-        <p><code>/metrics</code> is token-protected. Send:</p>
+      <section class="doc reveal" id="prerequisites">
+        <h2>Prerequisites</h2>
+        <ul>
+          <li>Node.js 20+ (for non-Docker runs).</li>
+          <li>Redis service available for queue/worker runtime.</li>
+          <li>At least one AI key: Gemini or OpenAI.</li>
+          <li>At least one Git provider token: GitHub and/or GitLab.</li>
+        </ul>
+      </section>
+
+      <section class="doc reveal" id="quickstart">
+        <h2>Quick Start</h2>
+        <p>
+          Goal: first useful review in minutes, not by the next sprint planning
+          meeting.
+        </p>
+        <h3>Option A: Docker Compose</h3>
+        <pre><code>git clone https://github.com/imabhinavdev/nirik.git
+cd nirik
+cp .env.example .env
+# edit .env
+docker compose up -d</code></pre>
+        <h3>Option B: Local Node</h3>
+        <pre><code>git clone https://github.com/imabhinavdev/nirik.git
+cd nirik
+pnpm install
+cp .env.example .env
+# edit .env
+pnpm start</code></pre>
+      </section>
+
+      <section class="doc reveal" id="self-hosting">
+        <h2>Self-Hosting</h2>
+        <p>
+          Production rule of thumb: if it can fail at 3 a.m., it eventually
+          will. Set health checks and logs before it does.
+        </p>
+        <ol>
+          <li>
+            Run Nirik behind HTTPS using Nginx, Caddy, Traefik, or Cloudflare
+            Tunnel.
+          </li>
+          <li>
+            Set <code>BASE_URL</code> to your public domain in
+            <code>.env</code>.
+          </li>
+          <li>
+            Expose endpoint <code>/api/v1/webhooks/review-pr</code> publicly.
+          </li>
+          <li>Protect secrets and rotate provider tokens regularly.</li>
+          <li>Keep logs/monitoring enabled for job and API health.</li>
+        </ol>
+      </section>
+
+      <section class="doc reveal" id="configuration">
+        <h2>Configuration</h2>
+        <p>Set values in <code>.env</code> before starting the app.</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Variable</th>
+              <th>Required</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>PORT</code></td>
+              <td>No</td>
+              <td>HTTP server port. Default <code>3000</code>.</td>
+            </tr>
+            <tr>
+              <td><code>NODE_ENV</code></td>
+              <td>No</td>
+              <td>
+                <code>development</code>, <code>production</code>, or
+                <code>test</code>.
+              </td>
+            </tr>
+            <tr>
+              <td><code>BASE_URL</code></td>
+              <td>No</td>
+              <td>
+                Public URL used in startup logs for correct webhook URL display.
+              </td>
+            </tr>
+            <tr>
+              <td><code>GEMINI_API_KEY</code></td>
+              <td>One AI key</td>
+              <td>Gemini API key. Preferred when both AI providers are set.</td>
+            </tr>
+            <tr>
+              <td><code>GEMINI_MODEL</code></td>
+              <td>No</td>
+              <td>Gemini model name. Default <code>gemini-2.0-flash</code>.</td>
+            </tr>
+            <tr>
+              <td><code>OPENAI_API_KEY</code></td>
+              <td>One AI key</td>
+              <td>OpenAI API key (used if Gemini key is not set).</td>
+            </tr>
+            <tr>
+              <td><code>OPENAI_MODEL</code></td>
+              <td>No</td>
+              <td>OpenAI model name. Default <code>gpt-4o-mini</code>.</td>
+            </tr>
+            <tr>
+              <td><code>GITHUB_TOKEN</code></td>
+              <td>For GitHub</td>
+              <td>GitHub PAT with <code>repo</code> scope.</td>
+            </tr>
+            <tr>
+              <td><code>GITLAB_TOKEN</code></td>
+              <td>For GitLab</td>
+              <td>GitLab PAT with <code>api</code> scope.</td>
+            </tr>
+            <tr>
+              <td><code>GITLAB_URL</code></td>
+              <td>No</td>
+              <td>GitLab base URL. Default <code>https://gitlab.com</code>.</td>
+            </tr>
+            <tr>
+              <td><code>GITHUB_WEBHOOK_SECRET</code></td>
+              <td>Recommended</td>
+              <td>Validates GitHub <code>X-Hub-Signature-256</code>.</td>
+            </tr>
+            <tr>
+              <td><code>GITLAB_WEBHOOK_TOKEN</code></td>
+              <td>Recommended</td>
+              <td>Validates GitLab <code>X-Gitlab-Token</code>.</td>
+            </tr>
+            <tr>
+              <td><code>METRICS_TOKEN</code></td>
+              <td>Yes</td>
+              <td>Required token for metrics endpoint authorization.</td>
+            </tr>
+            <tr>
+              <td><code>LOG_LEVEL</code></td>
+              <td>No</td>
+              <td>
+                <code>fatal</code>, <code>error</code>, <code>warn</code>,
+                <code>info</code>, <code>debug</code>, <code>trace</code>,
+                <code>silent</code>.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="doc reveal" id="webhooks">
+        <h2>Webhook Setup</h2>
+        <h3>GitHub</h3>
+        <ol>
+          <li>Repo Settings -> Webhooks -> Add webhook.</li>
+          <li>
+            Payload URL:
+            <code>https://your-domain.com/api/v1/webhooks/review-pr</code>.
+          </li>
+          <li>Content type: <code>application/json</code>.</li>
+          <li>Events: Pull requests.</li>
+          <li>
+            Set Secret and mirror it in <code>GITHUB_WEBHOOK_SECRET</code>.
+          </li>
+        </ol>
+        <h3>GitLab</h3>
+        <ol>
+          <li>Project Settings -> Webhooks.</li>
+          <li>
+            URL: <code>https://your-domain.com/api/v1/webhooks/review-pr</code>.
+          </li>
+          <li>Enable Merge request events.</li>
+          <li>
+            Set Secret token and mirror it in <code>GITLAB_WEBHOOK_TOKEN</code>.
+          </li>
+          <li>For self-hosted GitLab, set <code>GITLAB_URL</code>.</li>
+        </ol>
+      </section>
+
+      <section class="doc reveal" id="security">
+        <h2>Webhook Security</h2>
+        <ul>
+          <li>
+            GitHub requests are validated using HMAC SHA-256 signature header.
+          </li>
+          <li>GitLab requests are validated using token header comparison.</li>
+          <li>
+            If secrets are not set, webhook verification is disabled and not
+            production-safe.
+          </li>
+        </ul>
+      </section>
+
+      <section class="doc reveal" id="metrics">
+        <h2>Metrics Security</h2>
+        <p><code>GET /metrics</code> requires an authorization header.</p>
         <pre><code>Authorization: Bearer &lt;METRICS_TOKEN&gt;</code></pre>
-        <p>Example:</p>
-        <pre><code>curl -H "Authorization: Bearer your_token_here" https://your-domain.com/metrics</code></pre>
+        <p>Example request:</p>
+        <pre><code>curl -H "Authorization: Bearer your_token" https://your-domain.com/metrics</code></pre>
+        <p>
+          If you expose metrics publicly without auth, the internet will
+          benchmark your mistakes for free.
+        </p>
       </section>
 
-      <section class="doc reveal">
-        <h2>Production deployment notes</h2>
+      <section class="doc reveal" id="api">
+        <h2>API Reference</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>Path</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>GET</code></td>
+              <td><code>/</code></td>
+              <td>Health endpoint. Returns success JSON.</td>
+            </tr>
+            <tr>
+              <td><code>POST</code></td>
+              <td><code>/api/v1/webhooks/review-pr</code></td>
+              <td>
+                Webhook endpoint for GitHub/GitLab PR/MR events. Accepts
+                review-eligible actions and enqueues jobs.
+              </td>
+            </tr>
+            <tr>
+              <td><code>GET</code></td>
+              <td><code>/metrics</code></td>
+              <td>Prometheus metrics endpoint. Requires bearer token auth.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="doc reveal" id="rules">
+        <h2>Project-Specific Rules</h2>
+        <p>
+          Add a <code>.nirik/rules.md</code> file in the target repository
+          branch to apply custom review instructions. If not present, default
+          prompt rules are used.
+        </p>
+      </section>
+
+      <section class="doc reveal" id="operations">
+        <h2>Operations</h2>
+        <ul>
+          <li>Use process supervision for Node deployments (systemd/PM2).</li>
+          <li>Monitor logs for provider API failures and queue backlogs.</li>
+          <li>Scrape metrics securely with <code>METRICS_TOKEN</code>.</li>
+          <li>Rotate API tokens and webhook secrets periodically.</li>
+        </ul>
+      </section>
+
+      <section class="doc reveal" id="troubleshooting">
+        <h2>Troubleshooting</h2>
         <ul>
           <li>
-            Run behind HTTPS (Nginx, Caddy, Traefik, or Cloudflare Tunnel).
+            <strong>Missing Git tokens:</strong> set
+            <code>GITHUB_TOKEN</code> and/or <code>GITLAB_TOKEN</code>.
           </li>
           <li>
-            Use long random values for webhook secrets and
-            <code>METRICS_TOKEN</code>.
+            <strong>Missing AI keys:</strong> set <code>GEMINI_API_KEY</code> or
+            <code>OPENAI_API_KEY</code>.
           </li>
-          <li>Monitor logs and queue health.</li>
-          <li>Pin <code>BASE_URL</code> to your external domain.</li>
+          <li>
+            <strong>401 on webhook:</strong> verify configured webhook
+            secret/token matches provider settings exactly.
+          </li>
+          <li>
+            <strong>401 on metrics:</strong> send
+            <code>Authorization: Bearer &lt;METRICS_TOKEN&gt;</code>.
+          </li>
+          <li>
+            <strong>No review after 202:</strong> inspect logs for AI or
+            provider API errors and queue worker activity.
+          </li>
         </ul>
+        <p>
+          Debugging sequence: logs, env, webhook delivery history, then coffee.
+          In that order.
+        </p>
+      </section>
+
+      <section class="doc reveal" id="faq">
+        <h2>FAQ</h2>
+        <h3>Can I use both Gemini and OpenAI?</h3>
+        <p>Yes. If both keys are set, Gemini is selected first.</p>
+
+        <h3>Can I use self-hosted GitLab?</h3>
+        <p>Yes. Set <code>GITLAB_URL</code> to your instance base URL.</p>
+
+        <h3>Does it review every event?</h3>
+        <p>No. It processes review-relevant open/update event actions only.</p>
+
+        <h3>Can I run this without Docker?</h3>
+        <p>Yes. Install dependencies and run the Node server directly.</p>
+
+        <h3>Will this end code review debates forever?</h3>
+        <p>
+          No, but it will move debates from "did anyone review this?" to "should
+          this be a utility function?" which is real progress.
+        </p>
       </section>
     </main>
 
     <footer class="footer">
-      <p>
-        Need more detail? See the repository README for full configuration and
-        API notes.
-      </p>
+      <p>Documentation last updated for current Nirik behavior.</p>
+      <p><a href="#top">Back to top</a></p>
     </footer>
 
     <script>
