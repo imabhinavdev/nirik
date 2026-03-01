@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nirik | AI PR and MR Reviewer</title>
+    <meta
+      name="description"
+      content="Nirik is a self-hosted AI reviewer that posts feedback directly on GitHub pull requests and GitLab merge requests."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="bg-orb orb-a"></div>
+    <div class="bg-orb orb-b"></div>
+
+    <header class="topbar">
+      <a class="brand" href="#">Nirik</a>
+      <a
+        class="button button-ghost"
+        href="https://github.com/imabhinavdev/nirik"
+        >GitHub</a
+      >
+    </header>
+
+    <main>
+      <section class="hero reveal">
+        <p class="eyebrow">Self-hosted AI Code Reviewer</p>
+        <h1>Ship cleaner PRs and MRs without extra meetings.</h1>
+        <p class="lead">
+          Nirik listens to GitHub and GitLab webhooks, reviews changed lines
+          with Gemini or OpenAI, then posts actionable review comments right in
+          your workflow.
+        </p>
+        <div class="actions">
+          <a class="button" href="https://github.com/imabhinavdev/nirik"
+            >Get Started</a
+          >
+          <a
+            class="button button-ghost"
+            href="https://github.com/imabhinavdev/nirik#self-hosting"
+            >Self-host Guide</a
+          >
+        </div>
+      </section>
+
+      <section class="grid reveal">
+        <article class="card">
+          <h2>One webhook endpoint</h2>
+          <p>Use one URL for GitHub pull requests and GitLab merge requests.</p>
+        </article>
+        <article class="card">
+          <h2>Review only what matters</h2>
+          <p>Focuses on added lines and skips noisy generated files.</p>
+        </article>
+        <article class="card">
+          <h2>Runs async with queue workers</h2>
+          <p>Webhook responds quickly while review runs in the background.</p>
+        </article>
+      </section>
+
+      <section class="strip reveal">
+        <h2>Simple self-hosting path</h2>
+        <ol>
+          <li>Clone, configure .env, and add API tokens.</li>
+          <li>Run with Docker Compose or Node + Redis.</li>
+          <li>Point GitHub or GitLab webhook to /api/v1/webhooks/review-pr.</li>
+        </ol>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>MIT Licensed. Built for teams that want faster, cleaner reviews.</p>
+    </footer>
+
+    <script>
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) entry.target.classList.add('show')
+          })
+        },
+        { threshold: 0.12 },
+      )
+      document.querySelectorAll('.reveal').forEach((el) => observer.observe(el))
+    </script>
+  </body>
+</html>

@@ -13,6 +13,8 @@ When you open or update a PR/MR, this app fetches the diff, sends the changed co
 - [Features](#features)
 - [Prerequisites](#prerequisites)
 - [Quick start](#quick-start)
+- [Self-hosting](#self-hosting)
+- [Project website (GitHub Pages)](#project-website-github-pages)
 - [Configuration](#configuration)
 - [Domain and webhook URL](#domain-and-webhook-url)
 - [Setting up webhooks (GitHub & GitLab)](#setting-up-webhooks-github--gitlab)
@@ -87,8 +89,6 @@ You need to provide:
    - (Optional but recommended) `BASE_URL` to your public URL, e.g. `https://your-domain.com`
    - (Optional) Webhook secrets: `GITHUB_WEBHOOK_SECRET` and/or `GITLAB_WEBHOOK_TOKEN` (see [Webhook security](#webhook-security))
 
-   With Docker Compose you don’t need to set `REDIS_URL` – the default `redis://redis:6379` is used.
-
 3. **Start the app and Redis**
 
    ```bash
@@ -116,7 +116,7 @@ You need to provide:
    cp .env.example .env
    ```
 
-2. **Edit `.env`** – Same as above; set `REDIS_URL=redis://localhost:6379` (or your Redis URL) and your API keys/tokens.
+2. **Edit `.env`** – Same as above; set your API keys/tokens and optional webhook secrets.
 
 3. **Start Redis** (if you don’t have it running already), then start the app:
 
@@ -125,6 +125,53 @@ You need to provide:
    ```
 
 4. **Read the startup logs** – The webhook URL and other endpoints are printed so you know exactly what to configure.
+
+---
+
+## Self-hosting
+
+Nirik is designed for self-hosting and works well on a small VM or container host.
+
+1. **Choose runtime**
+   - **Docker Compose (recommended)**: easiest to run the app + Redis together.
+   - **Node process**: run with `pnpm start` behind a process manager (systemd or PM2) and a separate Redis instance.
+
+2. **Run in production**
+
+   ```bash
+   docker compose up -d
+   ```
+
+3. **Expose with HTTPS**
+
+   Put Nirik behind a reverse proxy (Nginx, Caddy, Traefik, or Cloudflare Tunnel) and route:
+   - `POST /api/v1/webhooks/review-pr`
+   - `GET /` (health)
+   - `GET /metrics` (optional monitoring)
+
+4. **Set public URL**
+
+   In `.env`, set:
+
+   ```env
+   BASE_URL=https://your-domain.com
+   ```
+
+5. **Secure webhooks**
+
+   Set `GITHUB_WEBHOOK_SECRET` and/or `GITLAB_WEBHOOK_TOKEN` in `.env`, and use those same values in webhook settings.
+
+---
+
+## Project website (GitHub Pages)
+
+This repo includes a one-page landing site in `docs/` and a Pages workflow at `.github/workflows/deploy-pages.yml`.
+
+1. Push these changes to your default branch (for example, `main`).
+2. In GitHub, go to **Settings → Pages** and set **Source** to **GitHub Actions**.
+3. GitHub Actions will deploy the content from `docs/`.
+4. Your site will be available at:
+   - `https://<your-username>.github.io/<your-repo>/`
 
 ---
 
@@ -150,8 +197,6 @@ All configuration is via environment variables (e.g. in `.env`).
 | **Webhook security (recommended)**      |            |                                                                                                                                                                                            |
 | `GITHUB_WEBHOOK_SECRET`                 | No         | Secret you set in GitHub webhook settings. App verifies `X-Hub-Signature-256`. If set, requests without a valid signature are rejected.                                                    |
 | `GITLAB_WEBHOOK_TOKEN`                  | No         | Token you set in GitLab webhook settings. App verifies `X-Gitlab-Token`. If set, requests without the correct token are rejected.                                                          |
-| **Redis**                               |            |                                                                                                                                                                                            |
-| `REDIS_URL`                             | Yes        | Redis connection URL (e.g. `redis://localhost:6379`). With Docker Compose use `redis://redis:6379`.                                                                                        |
 | **Other**                               |            |                                                                                                                                                                                            |
 | `LOG_LEVEL`                             | No         | Log level: `fatal`, `error`, `warn`, `info`, `debug`, `trace`, or `silent`.                                                                                                                |
 
@@ -278,10 +323,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
   The secret/token in your `.env` doesn’t match what you set in GitHub/GitLab. Copy the value from the webhook settings into `GITHUB_WEBHOOK_SECRET` or `GITLAB_WEBHOOK_TOKEN` exactly (no extra spaces).
 
 - **Webhook returns 202 but no review appears**  
-  Check app logs for errors (e.g. AI or Git API failures). Ensure Redis is running and `REDIS_URL` is correct. For GitLab, ensure `GITLAB_URL` points to your instance if self-hosted.
+  Check app logs for errors (e.g. AI or Git API failures). Ensure Redis is running and reachable. For GitLab, ensure `GITLAB_URL` points to your instance if self-hosted.
 
 - **Redis connection failed**  
-  Start Redis (e.g. `redis-server` or `docker compose up redis`) and set `REDIS_URL` to match (e.g. `redis://localhost:6379`).
+  Start Redis (e.g. `redis-server` or `docker compose up redis`). If needed, verify connectivity from the app container/host to your Redis service.
 
 ---
 
