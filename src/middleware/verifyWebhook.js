@@ -55,22 +55,18 @@ export function verifyWebhook(req, res, next) {
   // GitHub: X-Hub-Signature-256 present => verify with secret
   if (hubSignature) {
     if (!githubSecret) {
-      res
-        .status(401)
-        .json({
-          success: false,
-          message: 'GitHub webhook secret not configured',
-        })
+      res.status(401).json({
+        success: false,
+        message: 'GitHub webhook secret not configured',
+      })
       return
     }
     const rawBody = req.rawBody
     if (!rawBody) {
-      res
-        .status(401)
-        .json({
-          success: false,
-          message: 'Missing body for signature verification',
-        })
+      res.status(401).json({
+        success: false,
+        message: 'Missing body for signature verification',
+      })
       return
     }
     if (!verifyGitHubSignature(rawBody, hubSignature, githubSecret)) {
@@ -85,12 +81,10 @@ export function verifyWebhook(req, res, next) {
   // GitLab: X-Gitlab-Token present => verify with token
   if (gitlabHeader) {
     if (!gitlabToken) {
-      res
-        .status(401)
-        .json({
-          success: false,
-          message: 'GitLab webhook token not configured',
-        })
+      res.status(401).json({
+        success: false,
+        message: 'GitLab webhook token not configured',
+      })
       return
     }
     if (!verifyGitLabToken(gitlabHeader, gitlabToken)) {

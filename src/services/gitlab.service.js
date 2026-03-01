@@ -64,7 +64,9 @@ export async function listMergeRequestDiscussions(projectId, iid) {
     )
     if (!res.ok) {
       const text = await res.text()
-      throw new Error(`GitLab list MR discussions failed: ${res.status} ${text}`)
+      throw new Error(
+        `GitLab list MR discussions failed: ${res.status} ${text}`,
+      )
     }
     const discussions = await res.json()
     if (discussions.length === 0) break

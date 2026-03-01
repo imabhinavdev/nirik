@@ -87,7 +87,11 @@ function buildChunkPrompt(lines, chunkIndex, customRules = '') {
  * @param {{ customRules?: string }} [options] - Optional project rules from .nirik/rules.md
  * @returns {Promise<{ summary: string, reviewComments: Array<{ file: string, line: number, severity: string, body: string }> }>}
  */
-export async function reviewChunkWithAI(chunkLines, chunkIndex = 0, options = {}) {
+export async function reviewChunkWithAI(
+  chunkLines,
+  chunkIndex = 0,
+  options = {},
+) {
   const customRules = options?.customRules ?? ''
   const prompt = buildChunkPrompt(chunkLines, chunkIndex, customRules)
   const raw = await generateStructuredReview(prompt, reviewChunkResponseSchema)

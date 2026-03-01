@@ -5,13 +5,15 @@
   "type": "module",
   "main": "src/server.js",
   "scripts": {
-    "test": "echo \"So you think you can test heaven from hell?\" && exit 1",
+    "test": "npm run codecheck",
     "prepare": "husky",
     "lint": "eslint .",
     "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "preparepush": "npm run lint && npm run format",
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "codecheck": "npm run format:check && npm run lint"
   },
   "keywords": [
     "github",

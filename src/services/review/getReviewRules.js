@@ -1,9 +1,6 @@
 import { detectProviderFromEvent } from '../../lib/webhookProvider.js'
 import { getRepositoryFileContents } from '../github.service.js'
-import {
-  getMergeRequest,
-  getRepositoryFileRaw,
-} from '../gitlab.service.js'
+import { getMergeRequest, getRepositoryFileRaw } from '../gitlab.service.js'
 import { logger } from '../../config/logger.js'
 
 const RULES_PATH = '.nirik/rules.md'
@@ -27,7 +24,10 @@ export async function getReviewRules(event) {
       return await getReviewRulesGitLab(event)
     }
   } catch (err) {
-    logger.warn({ err, provider }, 'Failed to fetch .nirik/rules.md; continuing without rules')
+    logger.warn(
+      { err, provider },
+      'Failed to fetch .nirik/rules.md; continuing without rules',
+    )
     return ''
   }
   return ''
@@ -63,7 +63,10 @@ async function getReviewRulesGitLab(event) {
   try {
     mr = await getMergeRequest(projectId, iid)
   } catch (err) {
-    logger.warn({ err, projectId, iid }, 'Could not get MR for rules ref; skipping rules')
+    logger.warn(
+      { err, projectId, iid },
+      'Could not get MR for rules ref; skipping rules',
+    )
     return ''
   }
 

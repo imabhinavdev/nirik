@@ -41,7 +41,8 @@ export async function getGitHubBotUser() {
  */
 export async function listPullRequestReviewComments(repoFullName, pullNumber) {
   const [owner, repo] = repoFullName.split('/')
-  if (!owner || !repo) throw new Error('Invalid repo full name: ' + repoFullName)
+  if (!owner || !repo)
+    throw new Error('Invalid repo full name: ' + repoFullName)
 
   const all = []
   let page = 1
@@ -79,7 +80,8 @@ export async function listPullRequestReviewComments(repoFullName, pullNumber) {
  */
 export async function getRepositoryFileContents(repoFullName, filePath, ref) {
   const [owner, repo] = repoFullName.split('/')
-  if (!owner || !repo) throw new Error('Invalid repo full name: ' + repoFullName)
+  if (!owner || !repo)
+    throw new Error('Invalid repo full name: ' + repoFullName)
   const encodedPath = encodeURIComponent(filePath.replace(/^\//, ''))
   const url = `${GITHUB_API}/repos/${owner}/${repo}/contents/${encodedPath}?ref=${encodeURIComponent(ref)}`
   const res = await fetch(url, { headers: getAuthHeaders() })
