@@ -1,6 +1,7 @@
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { getReviewQueue } from '../services/queue/reviewQueue.js'
 import { recordReviewJob } from '../metrics.js'
+import { logger } from '../config/logger.js'
 import {
   detectAndValidateWebhook,
   getReviewJobId,
@@ -28,14 +29,21 @@ export const reviewPRWebhook = asyncHandler(async (req, res) => {
     return
   }
 
-  const jobId = getReviewJobId(provider, event)
+  const baseId = getReviewJobId(provider, event)
+  const jobId = `${baseId}-${Date.now()}`
   const queue = getReviewQueue()
-  await queue.add('review', event, { jobId })
+  const job = await queue.add('review', event, { jobId })
   recordReviewJob('enqueued')
+  logger.info(
+    { jobId: job.id, jobName: job.name, provider },
+    'Review job enqueued; worker will process in background',
+  )
 
   res.status(202).json({
     accepted: true,
-    message: 'Review started',
+    message:
+      'Review started (runs in background; check app logs for progress or errors)',
     provider,
+    jobId: job.id,
   })
 })

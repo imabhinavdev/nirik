@@ -1,4 +1,5 @@
 import { env } from '../config/env.js'
+import { logger } from '../config/logger.js'
 
 function getBaseUrl() {
   return (env.GITLAB_URL || 'https://gitlab.com').replace(/\/$/, '')
@@ -140,6 +141,10 @@ export async function createDiscussion(projectId, iid, body, position = null) {
   )
   if (!res.ok) {
     const text = await res.text()
+    logger.error(
+      { status: res.status, body: text, hasPosition: !!position },
+      'GitLab discussion create failed',
+    )
     throw new Error(`GitLab discussion create failed: ${res.status} ${text}`)
   }
   return res.json()
@@ -168,8 +173,11 @@ export async function createMergeRequestReview({
   }
 
   await createDiscussion(projectId, iid, reviewBody, null)
+  logger.info({ projectId, iid }, 'GitLab: created summary discussion')
 
-  for (const c of comments || []) {
+  const commentList = comments || []
+  for (let i = 0; i < commentList.length; i++) {
+    const c = commentList[i]
     const position = {
       position_type: 'text',
       new_path: c.file,
@@ -181,5 +189,16 @@ export async function createMergeRequestReview({
       head_sha: diffRefs.head_sha,
     }
     await createDiscussion(projectId, iid, c.body, position)
+    logger.info(
+      {
+        projectId,
+        iid,
+        file: c.file,
+        line: c.line,
+        n: i + 1,
+        total: commentList.length,
+      },
+      'GitLab: created line comment',
+    )
   }
 }

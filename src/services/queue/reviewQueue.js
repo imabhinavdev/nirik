@@ -1,14 +1,14 @@
 import { Queue, Worker } from 'bullmq'
-import { getRedisConnection, closeRedisConnection } from '../../config/redis.js'
+import {
+  getRedisConnection,
+  getWorkerConnection,
+  closeRedisConnection,
+} from '../../config/redis.js'
 import { runReviewPRJob } from '../../jobs/reviewPRJob.js'
 import { logger } from '../../config/logger.js'
 import { recordReviewJob } from '../../metrics.js'
 
 const QUEUE_NAME = 'review-pr'
-
-function getConnection() {
-  return getRedisConnection()
-}
 
 /** @type {Queue | null} */
 let reviewQueue = null
@@ -22,7 +22,7 @@ let reviewWorker = null
  */
 export function getReviewQueue() {
   if (!reviewQueue) {
-    reviewQueue = new Queue(QUEUE_NAME, { connection: getConnection() })
+    reviewQueue = new Queue(QUEUE_NAME, { connection: getRedisConnection() })
   }
   return reviewQueue
 }
@@ -37,8 +37,20 @@ export function startReviewWorker() {
     QUEUE_NAME,
     async (job) => {
       const start = Date.now()
+      logger.info({ jobId: job.id }, 'Worker picked up job; starting review')
+      const event = job.data
+      const provider = event?.pull_request ? 'github' : 'gitlab'
+      const repoLabel =
+        event?.repository?.full_name ??
+        event?.project?.path_with_namespace ??
+        event?.project_id
+      const mrNumber =
+        event?.pull_request?.number ?? event?.object_attributes?.iid
+      logger.info(
+        { jobId: job.id, provider, repoLabel, mrNumber },
+        'Review job started (processing in background)',
+      )
       try {
-        const event = job.data
         await runReviewPRJob(event)
         recordReviewJob('completed', (Date.now() - start) / 1000)
       } catch (err) {
@@ -46,11 +58,16 @@ export function startReviewWorker() {
         throw err
       }
     },
-    { connection: getConnection() },
+    { connection: getWorkerConnection() },
+  )
+
+  logger.info(
+    { queue: QUEUE_NAME },
+    'Review worker started; listening for jobs',
   )
 
   reviewWorker.on('completed', (job) => {
-    logger.debug({ jobId: job.id }, 'Review job completed')
+    logger.info({ jobId: job.id }, 'Review job completed')
   })
 
   reviewWorker.on('failed', (job, err) => {
@@ -63,6 +80,10 @@ export function startReviewWorker() {
       },
       'Review job failed',
     )
+  })
+
+  reviewWorker.on('error', (err) => {
+    logger.error({ err }, 'Review worker error (Redis/connection)')
   })
 }
 

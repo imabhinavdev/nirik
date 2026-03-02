@@ -12,7 +12,8 @@
     "format:check": "prettier --check .",
     "preparepush": "npm run lint && npm run format",
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
+    "dev:server": "nodemon src/server.js",
+    "dev": "chmod +x scripts/start-local.sh && bash scripts/start-local.sh",
     "codecheck": "npm run format:check && npm run lint"
   },
   "keywords": [

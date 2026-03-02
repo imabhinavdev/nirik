@@ -11,6 +11,7 @@ import {
   startReviewWorker,
   closeReviewQueue,
 } from './services/queue/reviewQueue.js'
+import { ensureRedisConnection } from './config/redis.js'
 import { register, metricsMiddleware } from './metrics.js'
 
 const app = express()
@@ -57,31 +58,52 @@ function getBaseUrl() {
   return `http://localhost:${env.PORT}`
 }
 
-const server = app.listen(env.PORT, () => {
-  const baseUrl = getBaseUrl()
-  const webhookPath = '/api/v1/webhooks/review-pr'
-  const webhookUrl = `${baseUrl}${webhookPath}`
+let server
 
-  logger.info(
-    { port: env.PORT, env: env.NODE_ENV, baseUrl, webhookPath },
-    `Server is running on ${baseUrl}`,
-  )
-  logger.info({ webhookUrl }, `Webhook URL (GitHub & GitLab): ${webhookUrl}`)
-  logger.info(
-    {
-      health: `${baseUrl}/`,
-      metrics: `${baseUrl}/metrics`,
-    },
-    'Other endpoints: GET / (health), GET /metrics (Prometheus)',
-  )
+async function start() {
+  try {
+    await ensureRedisConnection()
+    logger.info('Redis connected')
+  } catch (err) {
+    logger.fatal({ err }, 'Redis connection failed; server not started')
+    process.exit(1)
+  }
 
-  startReviewWorker()
+  server = app.listen(env.PORT, () => {
+    const baseUrl = getBaseUrl()
+    const webhookPath = '/api/v1/webhooks/review-pr'
+    const webhookUrl = `${baseUrl}${webhookPath}`
+
+    logger.info(
+      { port: env.PORT, env: env.NODE_ENV, baseUrl, webhookPath },
+      `Server is running on ${baseUrl}`,
+    )
+    logger.info({ webhookUrl }, `Webhook URL (GitHub & GitLab): ${webhookUrl}`)
+    logger.info(
+      {
+        health: `${baseUrl}/`,
+        metrics: `${baseUrl}/metrics`,
+      },
+      'Other endpoints: GET / (health), GET /metrics (Prometheus)',
+    )
+
+    startReviewWorker()
+  })
+}
+
+start().catch((err) => {
+  logger.fatal({ err }, 'Startup failed')
+  process.exit(1)
 })
 
 const shutdown = async (signal) => {
   logger.warn({ signal }, 'Shutdown signal received')
 
   await closeReviewQueue()
+  if (!server) {
+    process.exit(0)
+    return
+  }
   server.close(() => {
     logger.info('HTTP server closed')
     process.exit(0)

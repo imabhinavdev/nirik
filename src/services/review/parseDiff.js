@@ -52,6 +52,10 @@ export function parseDiff(diffText) {
     }
 
     if (line.startsWith('+++ b/')) {
+      // GitLab compact format may omit "diff --git"; ensure we have a file entry
+      if (!currentFile) {
+        currentFile = { file: null, hunks: [] }
+      }
       currentFile.file = line.replace('+++ b/', '').trim()
       continue
     }
@@ -59,6 +63,10 @@ export function parseDiff(diffText) {
     if (line.startsWith('@@')) {
       const match = line.match(/@@ -(\d+),?(\d*) \+(\d+),?(\d*) @@/)
       if (!match) continue
+      // Some diff formats (e.g. GitLab compact) may have hunks before "diff --git"
+      if (!currentFile) {
+        currentFile = { file: null, hunks: [] }
+      }
       oldLine = parseInt(match[1], 10)
       newLine = parseInt(match[3], 10)
       currentHunk = {

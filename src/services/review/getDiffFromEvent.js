@@ -2,6 +2,7 @@ import { ApiError } from '../../utils/apiError.js'
 import { parseDiff } from './parseDiff.js'
 import { detectProviderFromEvent } from '../../lib/webhookProvider.js'
 import { env } from '../../config/env.js'
+import { logger } from '../../config/logger.js'
 
 const GITHUB_DIFF_API = 'https://patch-diff.githubusercontent.com/raw'
 
@@ -32,8 +33,9 @@ export async function getDiffFromGitHubEvent(event) {
 /**
  * Fetch and parse diff for a GitLab merge_request event.
  * Uses GET /api/v4/projects/:id/merge_requests/:iid/changes.
+ * Returns diff_refs from the same response so posting comments does not need a second API call.
  * @param {object} event - GitLab webhook payload
- * @returns {Promise<Array<{ file: string, hunks: Array }>>}
+ * @returns {Promise<{ diffFiles: Array<{ file: string, hunks: Array }>, diffRefs: { base_sha: string, start_sha: string, head_sha: string } | null }>}
  */
 export async function getDiffFromGitLabEvent(event) {
   const projectId = event?.project?.id ?? event?.project_id
@@ -66,6 +68,24 @@ export async function getDiffFromGitLabEvent(event) {
 
   const data = await response.json()
   const changes = data.changes || []
+  const diffRefs =
+    data.diff_refs?.base_sha &&
+    data.diff_refs?.start_sha &&
+    data.diff_refs?.head_sha
+      ? data.diff_refs
+      : null
+
+  if (!diffRefs) {
+    logger.warn(
+      {
+        projectId,
+        iid,
+        hasDiffRefsInResponse: !!data.diff_refs,
+        responseKeys: data.diff_refs ? null : Object.keys(data).slice(0, 30),
+      },
+      'GitLab changes API did not return diff_refs; will fall back to MR endpoint when posting comments',
+    )
+  }
 
   const allFiles = []
   for (const change of changes) {
@@ -77,18 +97,20 @@ export async function getDiffFromGitLabEvent(event) {
     }
   }
 
-  return allFiles
+  return { diffFiles: allFiles, diffRefs }
 }
 
 /**
  * Fetch and parse diff from a webhook event (GitHub or GitLab).
+ * For GitLab also returns diff_refs from the changes API for posting comments.
  * @param {object} event - Webhook payload (pull_request or merge_request)
- * @returns {Promise<Array<{ file: string, hunks: Array }>>}
+ * @returns {Promise<{ diffFiles: Array<{ file: string, hunks: Array }>, diffRefs?: { base_sha: string, start_sha: string, head_sha: string } | null }>}
  */
 export async function getDiffFromEvent(event) {
   const provider = detectProviderFromEvent(event)
   if (provider === 'github') {
-    return getDiffFromGitHubEvent(event)
+    const diffFiles = await getDiffFromGitHubEvent(event)
+    return { diffFiles, diffRefs: null }
   }
   if (provider === 'gitlab') {
     return getDiffFromGitLabEvent(event)

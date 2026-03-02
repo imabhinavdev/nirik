@@ -42,17 +42,37 @@ export async function runReviewPRJob(event) {
   }
 
   try {
-    const [diffFiles, customRules] = await Promise.all([
+    const [diffResult, customRules] = await Promise.all([
       getDiffFromEvent(event),
       getReviewRules(event),
     ])
+    const diffFiles = diffResult.diffFiles ?? diffResult
+    const diffRefs = diffResult.diffRefs ?? null
+
+    logger.info(
+      {
+        provider,
+        repoLabel,
+        mrNumber,
+        diffFileCount: Array.isArray(diffFiles) ? diffFiles.length : 0,
+        hasDiffRefs: !!diffRefs,
+      },
+      'Diff loaded',
+    )
+
     const filtered = filterReviewableDiff(diffFiles)
     const lines = extractReviewableLines(filtered)
 
     if (lines.length === 0) {
       logger.info(
-        { provider, repoLabel, mrNumber },
-        'No reviewable added lines; skipping review',
+        {
+          provider,
+          repoLabel,
+          mrNumber,
+          commented: false,
+          reason: 'no_reviewable_lines',
+        },
+        'No reviewable added lines; skipping review (nothing commented)',
       )
       return
     }
@@ -81,18 +101,18 @@ export async function runReviewPRJob(event) {
 
     if (commentsToPost.length === 0) {
       logger.info(
-        { provider, repoLabel, mrNumber, filtered: commentsForGit.length },
-        'No new findings; skipping post (all comments already exist)',
+        {
+          provider,
+          repoLabel,
+          mrNumber,
+          commented: false,
+          reason: 'all_already_exist',
+          totalFindings: commentsForGit.length,
+        },
+        'No new findings; skipping post (all comments already exist; nothing commented)',
       )
       return
     }
-
-    await postReview({
-      provider,
-      event,
-      reviewBody,
-      reviewComments: commentsToPost,
-    })
 
     logger.info(
       {
@@ -102,10 +122,40 @@ export async function runReviewPRJob(event) {
         commentCount: commentsToPost.length,
         skipped: commentsForGit.length - commentsToPost.length,
       },
-      'Review posted',
+      'Posting review to GitLab',
+    )
+
+    await postReview({
+      provider,
+      event,
+      reviewBody,
+      reviewComments: commentsToPost,
+      diffRefs,
+    })
+
+    logger.info(
+      {
+        provider,
+        repoLabel,
+        mrNumber,
+        commented: true,
+        commentCount: commentsToPost.length,
+        skipped: commentsForGit.length - commentsToPost.length,
+      },
+      'Review posted successfully (summary + line comments)',
     )
   } catch (err) {
-    logger.error({ err, provider, repoLabel, mrNumber }, 'Review job failed')
+    logger.error(
+      {
+        err,
+        provider,
+        repoLabel,
+        mrNumber,
+        commented: false,
+        reason: 'job_failed',
+      },
+      'Review job failed (nothing commented)',
+    )
     throw err
   }
 }
