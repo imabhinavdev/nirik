@@ -6,7 +6,8 @@ const isProduction = env.NODE_ENV === 'production'
 const logLevel = env.LOG_LEVEL ?? (isProduction ? 'info' : 'debug')
 
 const fileStamp = new Date().toISOString().slice(0, 10)
-const prodLogPath = env.LOG_FILE_PATH || path.join('logs', `app-${fileStamp}.log`)
+const prodLogPath =
+  env.LOG_FILE_PATH || path.join('logs', `app-${fileStamp}.log`)
 
 const transport = isProduction
   ? pino.transport({
