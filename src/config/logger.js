@@ -6,17 +6,19 @@ const isProduction = env.NODE_ENV === 'production'
 const logLevel = env.LOG_LEVEL ?? (isProduction ? 'info' : 'debug')
 
 const fileStamp = new Date().toISOString().slice(0, 10)
-const prodLogPath = path.join('logs', `app-${fileStamp}.log`)
+const prodLogPath = env.LOG_FILE_PATH || path.join('logs', `app-${fileStamp}.log`)
 
 const transport = isProduction
   ? pino.transport({
-      targets: [
-        { target: 'pino/file', options: { destination: 1 } },
-        {
-          target: 'pino/file',
-          options: { destination: prodLogPath, mkdir: true },
-        },
-      ],
+      targets: env.LOG_FILE_PATH
+        ? [
+            { target: 'pino/file', options: { destination: 1 } },
+            {
+              target: 'pino/file',
+              options: { destination: prodLogPath, mkdir: true },
+            },
+          ]
+        : [{ target: 'pino/file', options: { destination: 1 } }],
     })
   : pino.transport({
       target: 'pino-pretty',
