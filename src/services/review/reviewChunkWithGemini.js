@@ -47,22 +47,49 @@ const parsedChunkSchema = z.object({
 })
 
 /**
- * Build the prompt text for one chunk of added lines.
- * @param {Array<{ file: string, line: number, content: string }>} lines
+ * Build the prompt text for one chunk of hunks (full context, removed, and added lines).
+ * Matches reviewChunkWithAI behavior for consistency.
+ * @param {Array<{ file: string, hunk: { contextLines?: Array, removedLines?: Array, addedLines?: Array } }>} chunkHunks
  * @param {number} chunkIndex
+ * @param {string} [customRules] - Optional project rules from .nirik/rules.md
  * @returns {string}
  */
-function buildChunkPrompt(lines, chunkIndex) {
-  const header =
-    'You are a code reviewer. Review only the following ADDED lines. For each finding, report: file path, line number (new side), severity (info | suggestion | warning | error), and a concise comment. Prefer actionable comments.\n\n'
+function buildChunkPrompt(chunkHunks, chunkIndex, customRules = '') {
+  const baseHeader =
+    'You are a code reviewer. Review the following code changes. Each section shows Context (unchanged), Removed, and Added lines. Only report findings on ADDED lines—use the line numbers from the Added section for each file. For each finding report: file path, line number (new side), severity (error | warning | info | suggestion), and a concise comment. Prefer actionable comments.\n\n' +
+    'By default output only a brief summary and findings that are actual errors or serious issues (use severity "error" or "warning"). Do not use "info" or "suggestion" unless the project rules explicitly ask for them.\n\n'
+  const rulesBlock =
+    customRules && customRules.trim()
+      ? `Apply these project-specific review rules when reviewing:\n\n${customRules.trim()}\n\n---\n\n`
+      : ''
+  const header = rulesBlock + baseHeader
+
   const blocks = []
-  let currentFile = null
-  for (const { file, line, content } of lines) {
-    if (file !== currentFile) {
-      blocks.push(`\n--- File: ${file} ---`)
-      currentFile = file
+  for (const { file, hunk } of chunkHunks) {
+    const ctx = hunk.contextLines ?? []
+    const rem = hunk.removedLines ?? []
+    const add = hunk.addedLines ?? []
+
+    blocks.push(`\n--- File: ${file} ---`)
+
+    if (ctx.length > 0) {
+      blocks.push('Context (unchanged):')
+      for (const { newLine, content } of ctx) {
+        blocks.push(`  Line ${newLine}: ${content}`)
+      }
     }
-    blocks.push(`Line ${line}: ${content}`)
+    if (rem.length > 0) {
+      blocks.push('Removed:')
+      for (const { line, content } of rem) {
+        blocks.push(`  Line ${line} (old): ${content}`)
+      }
+    }
+    if (add.length > 0) {
+      blocks.push('Added:')
+      for (const { line, content } of add) {
+        blocks.push(`  Line ${line}: ${content}`)
+      }
+    }
   }
   return (
     header +
@@ -72,13 +99,36 @@ function buildChunkPrompt(lines, chunkIndex) {
 }
 
 /**
- * Review one chunk with Gemini and return parsed, validated result.
- * @param {Array<{ file: string, line: number, content: string }>} chunkLines
+ * Set of "file:line" that are valid added-line targets for comments in this chunk.
+ * @param {Array<{ file: string, hunk: { addedLines?: Array<{ line: number }> } }>} chunkHunks
+ * @returns {Set<string>}
+ */
+function addedLineKeys(chunkHunks) {
+  const set = new Set()
+  for (const { file, hunk } of chunkHunks) {
+    const add = hunk.addedLines ?? []
+    for (const { line } of add) {
+      set.add(`${file}:${line}`)
+    }
+  }
+  return set
+}
+
+/**
+ * Review one chunk (array of full hunks) with Gemini and return parsed, validated result.
+ * Comments are validated to be on added lines only; others are dropped.
+ * @param {Array<{ file: string, hunk: { contextLines?: Array, removedLines?: Array, addedLines?: Array } }>} chunkHunks
  * @param {number} chunkIndex
+ * @param {{ customRules?: string }} [options] - Optional project rules from .nirik/rules.md
  * @returns {Promise<{ summary: string, reviewComments: Array<{ file: string, line: number, severity: string, body: string }> }>}
  */
-export async function reviewChunkWithGemini(chunkLines, chunkIndex = 0) {
-  const prompt = buildChunkPrompt(chunkLines, chunkIndex)
+export async function reviewChunkWithGemini(
+  chunkHunks,
+  chunkIndex = 0,
+  options = {},
+) {
+  const customRules = options?.customRules ?? ''
+  const prompt = buildChunkPrompt(chunkHunks, chunkIndex, customRules)
   const raw = await generateContentStructured(prompt, reviewChunkResponseSchema)
   let parsed
   try {
@@ -86,5 +136,10 @@ export async function reviewChunkWithGemini(chunkLines, chunkIndex = 0) {
   } catch {
     parsed = { summary: 'Parse error', reviewComments: [] }
   }
-  return parsedChunkSchema.parse(parsed)
+  const result = parsedChunkSchema.parse(parsed)
+  const allowedKeys = addedLineKeys(chunkHunks)
+  result.reviewComments = result.reviewComments.filter((c) =>
+    allowedKeys.has(`${c.file}:${c.line}`),
+  )
+  return result
 }

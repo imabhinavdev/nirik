@@ -30,8 +30,9 @@ export function isIgnoredFile(filePath = '') {
 
 /**
  * Parse unified diff text into list of { file, hunks }.
+ * Each hunk has addedLines, removedLines, and contextLines (unchanged lines for full context).
  * @param {string} diffText
- * @returns {Array<{ file: string, hunks: Array<{ oldStart: number, newStart: number, addedLines: Array<{ line: number, content: string }>, removedLines: Array<{ line: number, content: string }> }> }>}
+ * @returns {Array<{ file: string, hunks: Array<{ oldStart: number, newStart: number, addedLines: Array<{ line: number, content: string }>, removedLines: Array<{ line: number, content: string }>, contextLines: Array<{ oldLine: number, newLine: number, content: string }> }> }>}
  */
 export function parseDiff(diffText) {
   const lines = diffText.split('\n')
@@ -74,6 +75,7 @@ export function parseDiff(diffText) {
         newStart: newLine,
         addedLines: [],
         removedLines: [],
+        contextLines: [],
       }
       currentFile.hunks.push(currentHunk)
       continue
@@ -92,6 +94,11 @@ export function parseDiff(diffText) {
       continue
     }
     if (!line.startsWith('\\ No newline')) {
+      currentHunk.contextLines.push({
+        oldLine,
+        newLine,
+        content: line,
+      })
       oldLine++
       newLine++
     }

@@ -1,7 +1,6 @@
 import { getDiffFromEvent } from '../services/review/getDiffFromEvent.js'
 import { filterReviewableDiff } from '../services/review/filterReviewableDiff.js'
-import { extractReviewableLines } from '../services/review/extractReviewableLines.js'
-import { chunkReviewableLines } from '../services/review/chunkReviewableLines.js'
+import { getReviewChunks } from '../services/review/getReviewChunks.js'
 import { getReviewRules } from '../services/review/getReviewRules.js'
 import { reviewChunkWithAI } from '../services/review/reviewChunkWithAI.js'
 import { mergeReviewChunks } from '../services/review/mergeReviewChunks.js'
@@ -9,6 +8,20 @@ import { getExistingReviewComments } from '../services/review/getExistingReviewC
 import { postReview } from '../services/review/postReview.js'
 import { detectProviderFromEvent } from '../lib/webhookProvider.js'
 import { logger } from '../config/logger.js'
+
+/** Default: only error and warning. If rules mention suggestions/info, allow those too. */
+const DEFAULT_SEVERITIES = ['error', 'warning']
+const ALL_SEVERITIES = ['error', 'warning', 'info', 'suggestion']
+
+/**
+ * @param {string} rules - Content of .nirik/rules.md
+ * @returns {boolean} true if rules explicitly ask for info or suggestions
+ */
+function rulesAllowInfoOrSuggestion(rules) {
+  if (!rules || !String(rules).trim()) return false
+  const r = String(rules).toLowerCase()
+  return /suggestion|info|hints/.test(r)
+}
 
 /**
  * Run the full PR/MR review pipeline in the background.
@@ -61,9 +74,9 @@ export async function runReviewPRJob(event) {
     )
 
     const filtered = filterReviewableDiff(diffFiles)
-    const lines = extractReviewableLines(filtered)
+    const chunks = getReviewChunks(filtered)
 
-    if (lines.length === 0) {
+    if (chunks.length === 0) {
       logger.info(
         {
           provider,
@@ -72,12 +85,10 @@ export async function runReviewPRJob(event) {
           commented: false,
           reason: 'no_reviewable_lines',
         },
-        'No reviewable added lines; skipping review (nothing commented)',
+        'No reviewable hunks; skipping review (nothing commented)',
       )
       return
     }
-
-    const chunks = chunkReviewableLines(lines)
     const chunkResults = []
 
     for (let i = 0; i < chunks.length; i++) {
@@ -87,7 +98,14 @@ export async function runReviewPRJob(event) {
 
     const { reviewBody, reviewComments } = mergeReviewChunks(chunkResults)
 
-    const commentsForGit = reviewComments.map((c) => ({
+    const allowedSeverities = rulesAllowInfoOrSuggestion(customRules)
+      ? ALL_SEVERITIES
+      : DEFAULT_SEVERITIES
+    const filteredComments = reviewComments.filter((c) =>
+      allowedSeverities.includes(c.severity),
+    )
+
+    const commentsForGit = filteredComments.map((c) => ({
       file: c.file,
       line: c.line,
       body: `**[${c.severity}]** ${c.body}`,
