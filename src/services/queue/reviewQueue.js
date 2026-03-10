@@ -7,6 +7,7 @@ import {
 import { runReviewPRJob } from '../../jobs/reviewPRJob.js'
 import { logger } from '../../config/logger.js'
 import { recordReviewJob } from '../../metrics.js'
+import { env } from '../../config/env.js'
 
 const QUEUE_NAME = 'review-pr'
 
@@ -33,11 +34,12 @@ export function getReviewQueue() {
 export function startReviewWorker() {
   if (reviewWorker) return
 
+  const concurrency = env.REVIEW_WORKER_CONCURRENCY
+
   reviewWorker = new Worker(
     QUEUE_NAME,
     async (job) => {
       const start = Date.now()
-      logger.info({ jobId: job.id }, 'Worker picked up job; starting review')
       const event = job.data
       const provider = event?.pull_request ? 'github' : 'gitlab'
       const repoLabel =
@@ -46,37 +48,64 @@ export function startReviewWorker() {
         event?.project_id
       const mrNumber =
         event?.pull_request?.number ?? event?.object_attributes?.iid
+
       logger.info(
         { jobId: job.id, provider, repoLabel, mrNumber },
-        'Review job started (processing in background)',
+        'Worker picked up job; starting review',
       )
+
       try {
-        await runReviewPRJob(event)
+        await runReviewPRJob(event, { jobId: job.id })
         recordReviewJob('completed', (Date.now() - start) / 1000)
       } catch (err) {
         recordReviewJob('failed', (Date.now() - start) / 1000)
         throw err
       }
     },
-    { connection: getWorkerConnection() },
+    {
+      connection: getWorkerConnection(),
+      concurrency,
+    },
   )
 
   logger.info(
-    { queue: QUEUE_NAME },
+    { queue: QUEUE_NAME, concurrency },
     'Review worker started; listening for jobs',
   )
 
   reviewWorker.on('completed', (job) => {
-    logger.info({ jobId: job.id }, 'Review job completed')
+    const event = job.data
+    const provider = event?.pull_request ? 'github' : 'gitlab'
+    const repoLabel =
+      event?.repository?.full_name ??
+      event?.project?.path_with_namespace ??
+      event?.project_id
+    const mrNumber =
+      event?.pull_request?.number ?? event?.object_attributes?.iid
+
+    logger.info(
+      { jobId: job.id, provider, repoLabel, mrNumber },
+      'Review job completed',
+    )
   })
 
   reviewWorker.on('failed', (job, err) => {
+    const event = job?.data
+    const provider = event?.pull_request ? 'github' : 'gitlab'
+    const repoLabel =
+      event?.repository?.full_name ??
+      event?.project?.path_with_namespace ??
+      event?.project_id
+    const mrNumber =
+      event?.pull_request?.number ?? event?.object_attributes?.iid
+
     logger.error(
       {
         err,
         jobId: job?.id,
-        repo: job?.data?.repository?.full_name,
-        pr: job?.data?.pull_request?.number,
+        provider,
+        repoLabel,
+        mrNumber,
       },
       'Review job failed',
     )

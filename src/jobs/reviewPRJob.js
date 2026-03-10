@@ -26,12 +26,13 @@ function rulesAllowInfoOrSuggestion(rules) {
 /**
  * Run the full PR/MR review pipeline in the background.
  * @param {object} event - Webhook payload (GitHub pull_request or GitLab merge_request)
+ * @param {{ jobId?: string }} [jobMeta] - Optional job metadata from the queue worker
  */
-export async function runReviewPRJob(event) {
+export async function runReviewPRJob(event, jobMeta = {}) {
   const provider = detectProviderFromEvent(event)
   if (!provider) {
     logger.warn(
-      { event: !!event },
+      { event: !!event, jobId: jobMeta.jobId },
       'Review job skipped: unknown webhook payload',
     )
     return
@@ -46,9 +47,11 @@ export async function runReviewPRJob(event) {
       ? event?.pull_request?.number
       : event?.object_attributes?.iid
 
+  const jobKey = `${provider}:${repoLabel ?? 'unknown'}:${mrNumber ?? 'unknown'}`
+
   if (!repoLabel || mrNumber == null) {
     logger.warn(
-      { provider, repoLabel, mrNumber },
+      { provider, repoLabel, mrNumber, jobId: jobMeta.jobId, jobKey },
       'Review job skipped: missing repo or MR/PR identifier',
     )
     return
@@ -67,6 +70,8 @@ export async function runReviewPRJob(event) {
         provider,
         repoLabel,
         mrNumber,
+        jobId: jobMeta.jobId,
+        jobKey,
         diffFileCount: Array.isArray(diffFiles) ? diffFiles.length : 0,
         hasDiffRefs: !!diffRefs,
       },
@@ -82,6 +87,8 @@ export async function runReviewPRJob(event) {
           provider,
           repoLabel,
           mrNumber,
+          jobId: jobMeta.jobId,
+          jobKey,
           commented: false,
           reason: 'no_reviewable_lines',
         },
@@ -123,8 +130,11 @@ export async function runReviewPRJob(event) {
           provider,
           repoLabel,
           mrNumber,
+          jobId: jobMeta.jobId,
+          jobKey,
           commented: false,
           reason: 'all_already_exist',
+          note: 'Likely a repeat webhook for the same diff; all findings already commented from a previous run',
           totalFindings: commentsForGit.length,
         },
         'No new findings; skipping post (all comments already exist; nothing commented)',
@@ -137,6 +147,8 @@ export async function runReviewPRJob(event) {
         provider,
         repoLabel,
         mrNumber,
+        jobId: jobMeta.jobId,
+        jobKey,
         commentCount: commentsToPost.length,
         skipped: commentsForGit.length - commentsToPost.length,
       },
@@ -156,6 +168,8 @@ export async function runReviewPRJob(event) {
         provider,
         repoLabel,
         mrNumber,
+        jobId: jobMeta.jobId,
+        jobKey,
         commented: true,
         commentCount: commentsToPost.length,
         skipped: commentsForGit.length - commentsToPost.length,
@@ -169,6 +183,8 @@ export async function runReviewPRJob(event) {
         provider,
         repoLabel,
         mrNumber,
+        jobId: jobMeta.jobId,
+        jobKey,
         commented: false,
         reason: 'job_failed',
       },

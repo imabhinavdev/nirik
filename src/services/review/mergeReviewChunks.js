@@ -37,7 +37,9 @@ export function mergeReviewChunks(chunkResults) {
       (summaryText.slice(maxSummaryLength).match(/\S/) ? '…' : '')
   }
   const reviewBody =
-    summaries.length > 0 ? '## Summary\n\n' + summaryText : 'No summary provided.'
+    summaries.length > 0
+      ? '## Summary\n\n' + summaryText
+      : 'No summary provided.'
 
   return { reviewBody, reviewComments }
 }

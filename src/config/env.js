@@ -29,6 +29,8 @@ const envSchema = z.object({
   /** Token required to access /metrics. */
   METRICS_TOKEN: z.string().min(16),
   REDIS_URL: z.string().default('redis://localhost:6379'),
+  /** Concurrency for the review worker (BullMQ). */
+  REVIEW_WORKER_CONCURRENCY: z.coerce.number().int().positive().default(1),
 })
 
 export const env = envSchema.parse(process.env)
