@@ -28,10 +28,16 @@ export function mergeReviewChunks(chunkResults) {
   }
 
   const summaries = chunkResults.map((c) => c?.summary?.trim()).filter(Boolean)
+  const maxSummaryLength = 600
+  let summaryText =
+    summaries.length > 0 ? summaries.join('\n\n') : 'No summary provided.'
+  if (summaryText.length > maxSummaryLength) {
+    summaryText =
+      summaryText.slice(0, maxSummaryLength).trim() +
+      (summaryText.slice(maxSummaryLength).match(/\S/) ? '…' : '')
+  }
   const reviewBody =
-    summaries.length > 0
-      ? '## Summary\n\n' + summaries.join('\n\n')
-      : 'No summary provided.'
+    summaries.length > 0 ? '## Summary\n\n' + summaryText : 'No summary provided.'
 
   return { reviewBody, reviewComments }
 }

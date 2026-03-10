@@ -7,7 +7,8 @@ export const reviewChunkResponseSchema = {
   properties: {
     summary: {
       type: 'string',
-      description: 'Brief summary of findings for this chunk',
+      description:
+        'Short summary for this chunk: 4-5 sentences max. Keep it brief even for large changes.',
     },
     reviewComments: {
       type: 'array',
@@ -57,6 +58,7 @@ const parsedChunkSchema = z.object({
 function buildChunkPrompt(chunkHunks, chunkIndex, customRules = '') {
   const baseHeader =
     'You are a code reviewer. Review the following code changes. Each section shows Context (unchanged), Removed, and Added lines. Only report findings on ADDED lines—use the line numbers from the Added section for each file. For each finding report: file path, line number (new side), severity (error | warning | info | suggestion), and a concise comment. Prefer actionable comments.\n\n' +
+    'Keep the summary short: 4-5 sentences max for this chunk, even when the change is large. Do not write long paragraphs.\n\n' +
     'By default output only a brief summary and findings that are actual errors or serious issues (use severity "error" or "warning"). Do not use "info" or "suggestion" unless the project rules explicitly ask for them.\n\n'
   const rulesBlock =
     customRules && customRules.trim()
